@@ -10,81 +10,122 @@ import UIKit
 
 
 private class RSDotView: UIView {
-    var fillColor:UIColor = UIColor.blackColor()
-    var diameter:CGFloat = CGFloat(1)
-    
-    override func drawRect(rect: CGRect) {
-        let context = UIGraphicsGetCurrentContext()
-        self.fillColor.setFill()
-        CGContextAddEllipseInRect(context,(CGRectMake (0, 0, diameter, diameter)))
-        CGContextDrawPath(context, kCGPathFill)
-        CGContextStrokePath(context)
+  var fillColor: UIColor = .blackColor()
+  var diameter: CGFloat = 1
+  var shadow = false
+
+  override func drawRect(rect: CGRect) {
+    let context = UIGraphicsGetCurrentContext()
+    fillColor.setFill()
+    if shadow {
+      CGContextAddEllipseInRect(context,(CGRectMake (2, 1, diameter-4, diameter-4)))
+      CGContextSetShadowWithColor(context, CGSizeMake(0, 1), 2, UIColor(white: 0, alpha: 0.2).CGColor)
+    } else {
+      CGContextAddEllipseInRect(context,(CGRectMake (0, 0, diameter, diameter)))
     }
+    CGContextDrawPath(context, kCGPathFill)
+    CGContextStrokePath(context)
+  }
+
+  var animating: Bool {
+    return !(layer.animationKeys()?.isEmpty ?? true)
+  }
 }
 
 
-class RSDotsView: UIView {
-   
-    var dotsColor:UIColor = UIColor.blackColor() {
-        didSet {
-            buildView()
-        }
-    }
-    
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        buildView()
-    }
+public class RSDotsView: UIView {
 
-    required init(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        buildView()
+  @IBInspectable public var dotsColor: UIColor = .blackColor() {
+    didSet { buildView() }
+  }
+
+  public var dotsShadow: Bool = false {
+    didSet { buildView() }
+  }
+
+  public override init(frame: CGRect) {
+    super.init(frame: frame)
+    buildView()
+  }
+
+  required public init(coder aDecoder: NSCoder) {
+    super.init(coder: aDecoder)
+    buildView()
+  }
+
+  private func buildView() {
+    subviews.map { $0.removeFromSuperview() }
+    let numberDots: CGFloat = 3
+
+    let margin: CGFloat = dotsShadow ? 2 : 5
+    let dotDiameter: CGFloat = dotsShadow ? 14 : 9
+    let centerWidth = (dotDiameter * numberDots) + (margin * (numberDots - 1))
+    var dotFrame = CGRectMake((self.frame.width - centerWidth) / 2, self.bounds.size.height/2 - dotDiameter/2, dotDiameter, dotDiameter)
+
+    for i in 0..<Int(numberDots) {
+      var dot = RSDotView(frame: dotFrame)
+      dot.diameter = dotFrame.size.width
+      dot.fillColor = dotsColor
+      dot.shadow = dotsShadow
+      dot.backgroundColor = .clearColor()
+
+      addSubview(dot)
+      dotFrame.origin.x += margin + dotDiameter
     }
-    
-    
-    
-    private func buildView() {
-        self.layer.cornerRadius = self.bounds.size.width/2;
-        
-        for subview in self.subviews {
-            subview.removeFromSuperview()
-        }
-        let numberDots = CGFloat(3)
-        let width = (self.bounds.size.width)/(numberDots+1)
-        let margin = (self.bounds.size.width - (width * numberDots)) / 1.3
-        let dotDiameter = width/3
-        var frame = CGRectMake(margin, self.bounds.size.height/2 - dotDiameter/2, dotDiameter, dotDiameter);
-        
-        for i in 0...Int(numberDots-1) {
-            var dot = RSDotView(frame: frame)
-            dot.diameter = frame.size.width;
-            dot.fillColor = self.dotsColor;
-            dot.backgroundColor = UIColor.clearColor()
-            
-            self.addSubview(dot)
-            frame.origin.x += width
-        }
+  }
+
+  public func showAndStartAnimating() {
+    hidden = false
+    animating = true
+  }
+
+  public func hideAndStopAnimating() {
+    hidden = true
+    animating = false
+  }
+
+  public var animating: Bool = false {
+    didSet {
+      if animating == oldValue { return }
+      if animating { animation() }
     }
-    
-    func startAnimating() {
-        var i:Int = 0
-        for dot in self.subviews as [RSDotView] {
-            dot.transform = CGAffineTransformMakeScale(0.01, 0.01);
-            let delay = 0.1*Double(i)
-            UIView.animateWithDuration(Double(0.5), delay:delay, options: UIViewAnimationOptions.CurveEaseInOut|UIViewAnimationOptions.Repeat|UIViewAnimationOptions.Autoreverse , animations: { () -> Void in
-                dot.transform = CGAffineTransformMakeScale(1, 1);
-                }, completion: nil)
-            
-            i++;
+  }
+
+  public var scale: CGFloat = 1 {
+    didSet {
+      for dot in subviews as! [RSDotView] {
+        if !dot.animating {
+          dot.transform = CGAffineTransformMakeScale(scale, scale)
         }
+      }
     }
-    
-    
-    func stopAnimating() {
-        for dot in self.subviews as [RSDotView] {
-            dot.transform = CGAffineTransformMakeScale(1, 1);
-            dot.layer.removeAllAnimations()
-        }
+  }
+
+  private func animation() {
+    if !animating { return }
+    for dot in subviews as! [RSDotView] {
+      if dot.animating {
+        return dispatch_async(dispatch_get_main_queue(), animation)
+      }
     }
-    
+    for (i, dot) in enumerate(subviews as! [RSDotView]) {
+      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(0.1 * Double(i) * Double(NSEC_PER_SEC))), dispatch_get_main_queue()) {
+        self.oneAnimation(dot)
+      }
+    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(1 * Double(NSEC_PER_SEC))), dispatch_get_main_queue(), animation)
+  }
+
+  private func oneAnimation(dot: RSDotView) {
+    if dot.animating {
+      return dispatch_async(dispatch_get_main_queue()) { self.oneAnimation(dot) }
+    }
+    UIView.animateWithDuration(0.5, animations: {
+      dot.transform = CGAffineTransformMakeScale(0.01, 0.01)
+    }) { _ in
+      UIView.animateWithDuration(0.5) {
+        dot.transform = CGAffineTransformIdentity
+      }
+    }
+  }
 }
