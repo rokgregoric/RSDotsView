@@ -23,7 +23,7 @@ private class RSDotView: UIView {
     } else {
       CGContextAddEllipseInRect(context,(CGRectMake (0, 0, diameter, diameter)))
     }
-    CGContextDrawPath(context, kCGPathFill)
+    CGContextDrawPath(context, .Fill)
     CGContextStrokePath(context)
   }
 
@@ -49,12 +49,12 @@ public class RSDotsView: UIView {
   }
 
   required public init(coder aDecoder: NSCoder) {
-    super.init(coder: aDecoder)
+    super.init(coder: aDecoder)!
     buildView()
   }
 
   private func buildView() {
-    subviews.map { $0.removeFromSuperview() }
+    subviews.forEach { $0.removeFromSuperview() }
     let numberDots: CGFloat = 3
 
     let margin: CGFloat = dotsShadow ? 2 : 5
@@ -62,8 +62,8 @@ public class RSDotsView: UIView {
     let centerWidth = (dotDiameter * numberDots) + (margin * (numberDots - 1))
     var dotFrame = CGRectMake((self.frame.width - centerWidth) / 2, self.bounds.size.height/2 - dotDiameter/2, dotDiameter, dotDiameter)
 
-    for i in 0..<Int(numberDots) {
-      var dot = RSDotView(frame: dotFrame)
+    for _ in 0..<Int(numberDots) {
+      let dot = RSDotView(frame: dotFrame)
       dot.diameter = dotFrame.size.width
       dot.fillColor = dotsColor
       dot.shadow = dotsShadow
@@ -108,9 +108,9 @@ public class RSDotsView: UIView {
         return dispatch_async(dispatch_get_main_queue(), animation)
       }
     }
-    for (i, dot) in enumerate(subviews as! [RSDotView]) {
+    for (i, dot) in subviews.enumerate() {
       dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(0.1 * Double(i) * Double(NSEC_PER_SEC))), dispatch_get_main_queue()) {
-        self.oneAnimation(dot)
+        self.oneAnimation(dot as! RSDotView)
       }
     }
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(1 * Double(NSEC_PER_SEC))), dispatch_get_main_queue(), animation)
