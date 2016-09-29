@@ -18,13 +18,13 @@ private class RSDotView: UIView {
     let context = UIGraphicsGetCurrentContext()
     fillColor.setFill()
     if shadow {
-      CGContextAddEllipseInRect(context,(CGRectMake (2, 1, diameter-4, diameter-4)))
-      CGContextSetShadowWithColor(context, CGSizeMake(0, 1), 2, UIColor(white: 0, alpha: 0.2).CGColor)
+      CGContextAddEllipseInRect(context!,(CGRectMake (2, 1, diameter-4, diameter-4)))
+      CGContextSetShadowWithColor(context!, CGSizeMake(0, 1), 2, UIColor(white: 0, alpha: 0.2).CGColor)
     } else {
-      CGContextAddEllipseInRect(context,(CGRectMake (0, 0, diameter, diameter)))
+      CGContextAddEllipseInRect(context!,(CGRectMake (0, 0, diameter, diameter)))
     }
-    CGContextDrawPath(context, .Fill)
-    CGContextStrokePath(context)
+    CGContextDrawPath(context!, .Fill)
+    CGContextStrokePath(context!)
   }
 
   var animating: Bool {
